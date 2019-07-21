@@ -1,7 +1,7 @@
 # kmp-news
 
-#running elsasticsearch
+## running elsasticsearch
 ./bin/elasticsearch
 
-#curl
+## curl
 curl -X GET 'http://localhost:3000/api/news?page=1' 
