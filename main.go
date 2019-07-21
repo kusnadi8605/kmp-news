@@ -5,10 +5,12 @@ import (
 	"fmt"
 	conf "kmp-news/config"
 	hdlr "kmp-news/handler"
+	log "kmp-news/logging"
 	mdw "kmp-news/middleware"
-	"log"
+
 	"net/http"
 	"os"
+	"runtime"
 
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -17,27 +19,48 @@ func main() {
 	// load config file
 	configFile := flag.String("conf", "config/config.yml", "main configuration file")
 
-	flag.Parse()
-	conf.LoadConfigFromFile(configFile)
-	conn, err := conf.New(conf.Param.DBType, conf.Param.DBUrl)
-	conf.Logf("Load Database Conf: %s ", conf.Param.DBType)
-	conf.Logf("running App on port: %s ", conf.Param.ListenPort)
+	log.Logf("OS: %s", runtime.GOOS)
+	log.Logf("architecture: %s", runtime.GOARCH)
 
-	elasticConn := conf.ElasticConn(conf.Param.ElasticURL)
+	flag.Parse()
+
+	log.Logf("reads configuration from %s", *configFile)
+	conf.LoadConfigFromFile(configFile)
+
+	log.Init(conf.Param.Log.Level, conf.Param.Log.FileName)
+
+	//mysql connection
+	conn, err := conf.New(conf.Param.DBType, conf.Param.DBUrl)
+	log.Logf("Load Database Conf: %s ", conf.Param.DBType)
+	log.Logf("running App on port: %s ", conf.Param.ListenPort)
 
 	if err != nil {
-		conf.Logf("Load Database Conf: %s ", err)
-		log.Fatal(err)
+		log.Errorf("Unable to open database %v", err)
+		os.Exit(1)
 	}
 
-	http.HandleFunc("/api/news", mdw.Chain(hdlr.GetNewsHandler(conn, elasticConn, conf.Param.ElasticIndex, conf.Param.ElasticPerpage), mdw.Method("GET")))
+	//elastic connection
+	elasticConn, err := conf.ElasticConn(conf.Param.ElasticURL)
+
+	if err != nil {
+		log.Errorf("Unable to open elasticsearch %v", err)
+		os.Exit(1)
+	}
+
+	http.HandleFunc("/api/news", mdw.Chain(
+		hdlr.GetNewsHandler(
+			conn,
+			elasticConn,
+			conf.Param.ElasticIndex,
+			conf.Param.ElasticPerpage,
+		), mdw.Method("GET")))
 
 	var errors error
 	errors = http.ListenAndServe(conf.Param.ListenPort, nil)
 
 	if errors != nil {
 		fmt.Println("error", errors)
-		conf.Logf("Unable to start the server: %s ", conf.Param.ListenPort)
+		log.Logf("Unable to start the server: %s ", conf.Param.ListenPort)
 		os.Exit(1)
 	}
 }

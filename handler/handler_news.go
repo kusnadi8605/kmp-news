@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	conf "kmp-news/config"
 	dts "kmp-news/datastruct"
+	log "kmp-news/logging"
 	mdl "kmp-news/models"
 	"net/http"
 
@@ -17,8 +18,6 @@ func GetNewsHandler(conn *conf.Connection, client *elastic.Client, index string,
 		w.Header().Set("Content-Type", "application/json")
 		var NewsResponse dts.NewsResponse
 
-		//listNews, err := mdl.GetNews(conn)
-
 		page := req.URL.Query().Get("page")
 
 		res, err := mdl.GetNewsElastic(conn, client, index, page, perpage)
@@ -28,7 +27,7 @@ func GetNewsHandler(conn *conf.Connection, client *elastic.Client, index string,
 			NewsResponse.ResponseDesc = err.Error()
 			json.NewEncoder(w).Encode(NewsResponse)
 
-			conf.Logf("Response News : %v", NewsResponse.ResponseDesc)
+			log.Logf("Response News : %v", NewsResponse)
 
 			return
 		}
@@ -38,7 +37,7 @@ func GetNewsHandler(conn *conf.Connection, client *elastic.Client, index string,
 			NewsResponse.ResponseDesc = "data not found"
 			json.NewEncoder(w).Encode(NewsResponse)
 
-			conf.Logf("Response News : %v", NewsResponse.ResponseDesc)
+			log.Logf("Response News : %v", NewsResponse)
 
 			return
 		}
@@ -48,7 +47,7 @@ func GetNewsHandler(conn *conf.Connection, client *elastic.Client, index string,
 		NewsResponse.Payload = res
 		json.NewEncoder(w).Encode(NewsResponse)
 
-		conf.Logf("Response News : %v", NewsResponse.ResponseDesc)
+		log.Logf("Response News : %v", NewsResponse)
 	}
 
 }

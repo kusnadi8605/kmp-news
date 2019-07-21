@@ -14,8 +14,6 @@ elasticPerpage: 2
 redisURL: 127.0.0.1:6379
 
 # logging
-logsFile:
-  employee: news_logs_
-  runningApp: news_logs_ 
-
-logDir: "logs"
+log:
+  filename: logs/kmp_news.log
+  level: DEBUG
